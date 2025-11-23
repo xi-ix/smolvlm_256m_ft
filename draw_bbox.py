@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 import numpy as np
 
-def draw_bounding_box(image_path, bbox_coords, output_path="images/outputs/output.jpg"):
+def draw_bounding_box(image_path, bbox_coords, output_path="output.jpg"):
     """
     在图片上绘制边界框
     Args:
