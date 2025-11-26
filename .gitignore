@@ -1,1 +1,5 @@
 SmolVLM-256M-Instruct/
+datasets/AerialVG/
+datasets/RefDrone/VisDrone2019-DET-test/
+datasets/RefDrone/VisDrone2019-DET-train/
+datasets/RefDrone/VisDrone2019-DET-val/
