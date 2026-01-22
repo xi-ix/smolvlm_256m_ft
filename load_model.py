@@ -98,14 +98,10 @@ if __name__ == "__main__":
 
     model_path="SmolVLM-256M-Instruct"
     model, processor = load_smolvlm(model_path)
-    image_path = "images/test/test.jpg"  
-    prompt = """there is the statue of liberty. 
-            Examine the image and identify the statue of liberty.
-            Provide only the bounding box coordinates in normalized format [x_min, y_min, x_max, y_max], 
-            where coordinates range from 0 to 1 based on image width and height.
-            Output nothing else.
-            """
+    image_path = "images/test/3.png"  
+    prompt = """three is a picture of road,Help me determine if the road is crowded or not.
+                just use "yes" or "no" to answer.
+                """
     
     response1 = process_image_text(model, processor, image_path, prompt)
     print(response1)
-    
