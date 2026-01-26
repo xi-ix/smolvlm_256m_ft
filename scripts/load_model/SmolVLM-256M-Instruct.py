@@ -96,12 +96,13 @@ def process_image_text(model, processor, image_input, text):
 
 if __name__ == "__main__":
 
-    model_path="SmolVLM-256M-Instruct"
+    model_path="model_weights/SmolVLM-256M-Instruct"
     model, processor = load_smolvlm(model_path)
-    image_path = "images/test/3.png"  
-    prompt = """three is a picture of road,Help me determine if the road is crowded or not.
-                just use "yes" or "no" to answer.
-                """
-    
+    image_path = "images/test/0.png"  
+    question1 = """
+        Count the visible vehicles (cars, trucks, buses) in the image;
+        And tell me whether the road is congested or not.
+        """
+    prompt = question1
     response1 = process_image_text(model, processor, image_path, prompt)
     print(response1)
