@@ -3,7 +3,16 @@ import torch
 import torchvision.transforms as T
 from PIL import Image
 from torchvision.transforms.functional import InterpolationMode
-from transformers import AutoModel, AutoTokenizer
+from transformers import AutoModel, AutoTokenizer, AutoConfig
+#
+# 有可能模型加载使用的InternVl2对transformer的版本有要求，不能太高#
+
+import warnings
+import os
+warnings.filterwarnings('ignore')
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
@@ -79,48 +88,50 @@ def load_image(image_file, input_size=448, max_num=12):
     pixel_values = torch.stack(pixel_values)
     return pixel_values
 
-# If you want to load a model using multiple GPUs, please refer to the `Multiple GPUs` section.
 path = 'OpenGVLab/Mini-InternVL2-2B-DA-DriveLM'
+cache_path = r"model_weights/OpenGVLabMini-InternVL2-2B-DA-DriveLM"
+
+# 尝试这种精简的加载方式
 model = AutoModel.from_pretrained(
     path,
-    cache_dir="model_weights\OpenGVLabMini-InternVL2-2B-DA-DriveLM",  
+    cache_dir=cache_path,
     torch_dtype=torch.bfloat16,
-    low_cpu_mem_usage=True,
-    use_flash_attn=True,
-    trust_remote_code=True,
-    device_map='auto').eval()
+    low_cpu_mem_usage=False, # 必须为 False
+    device_map=None,          # 必须为 None
+    trust_remote_code=True
+)
+# 搬运到 GPU
+model = model.cuda().eval()
 tokenizer = AutoTokenizer.from_pretrained(path, trust_remote_code=True, use_fast=True)
 
-# set the max number of tiles in `max_num`4
-image_path = "images/test/0.png"
-pixel_values = load_image(image_path, max_num=12).to(torch.bfloat16).cuda()
-generation_config = dict(max_new_tokens=1024, do_sample=True)
 
 
-# single-image single-round conversation (单图单轮对话)
-question1 = '''<image>\n
+
+# single-image single-round conversation
+question0 = """
+    任务：检测交通拥堵状况。
+    """
+question1 = """
+    任务：检测交通拥堵状况。告诉我画面中有几辆车.
+    回答我车辆数量以及是否拥堵。
+    """
+question2 = '''<image>\n
     1. 首先计算画面中可见车辆的数量和汽车占道路比例。
     2. 然后判断道路是否拥堵。（可以通过汽车数量、汽车之间的距离、汽车占据道路的比例来判断）。
     请严格按此格式输出：
     车辆数量：[数字]
     汽车占道路比例：[数字]
     是否拥堵：[Yes/No]'''
-    
-question = question1
-response = model.chat(tokenizer, pixel_values, question, generation_config)
-print(f'question:\n{question}\nAssistant:\n{response}')
+# set the max number of tiles in `max_num`4
+question = question2
+
+print(f"question:\n{question}\n")
+for num in range(3):
+    image_path = f"images/test/{num}.png"
+    pixel_values = load_image(image_path, max_num=12).to(torch.bfloat16).cuda()
+    generation_config = dict(max_new_tokens=1024, do_sample=True)
+    response = model.chat(tokenizer, pixel_values, question, generation_config)
+    print("-" * 30)
+    print(f'picture_{num}:\n{response}\n')
 
 
-# # batch inference, single image per sample (单图批处理)
-# pixel_values1 = load_image('path/to/image1.jpg', max_num=12).to(torch.bfloat16).cuda()
-# pixel_values2 = load_image('path/to/image1.jpg', max_num=12).to(torch.bfloat16).cuda()
-# num_patches_list = [pixel_values1.size(0), pixel_values2.size(0)]
-# pixel_values = torch.cat((pixel_values1, pixel_values2), dim=0)
-
-# questions = ['<image>\nDescribe the image in detail.'] * len(num_patches_list)
-# responses = model.batch_chat(tokenizer, pixel_values,
-#                              num_patches_list=num_patches_list,
-#                              questions=questions,
-#                              generation_config=generation_config)
-# for question, response in zip(questions, responses):
-#     print(f'User: {question}\nAssistant: {response}')
